@@ -256,7 +256,7 @@ app.get("/api/fulfillment-stats", async (req, res) => {
     const median30 = calculateMedian(last30Days.map((f) => f.diffHours));
 
     res.json({
-      today_fulfillment_times: todayDiffHours,
+      today_fulfillment_times: todayDiffHours.toFixed(2),
       median_7_days: median7.toFixed(2),
       median_30_days: median30.toFixed(2),
     });
