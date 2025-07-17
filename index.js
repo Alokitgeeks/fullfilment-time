@@ -15,7 +15,7 @@ app.get("/api/fulfillment-stats", async (req, res) => {
 
     const response = await axios.get(`${BASE_URL}/orders.json?status=any&limit=100&fields=id,created_at,fulfillments`, {
       headers: {
-        "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_API_PASSWORD,
+        "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_API,
         "Content-Type": "application/json",
       },
     });
