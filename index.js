@@ -4,11 +4,11 @@ const app = express();
 const PORT = 3000;
 
 // Shopify credentials (keep secure in real apps!)
-const STORE_URL = "the-sporty-pet.myshopify.com";
-const APIPASSWORD = "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";
+const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_DOMAIN;
+const SHOPIFY_ADMIN_API_PASSWORD = process.env.SHOPIFY_ADMIN_API_PASSWORD;
 
 const SHOPIFY_API_VERSION = "2024-01";
-const BASE_URL = `https://${STORE_URL}/admin/api/${SHOPIFY_API_VERSION}`;
+const BASE_URL = `https://${SHOPIFY_STORE_URL}/admin/api/${SHOPIFY_API_VERSION}`;
 
 app.get("/api/fulfillment-stats", async (req, res) => {
   try {
@@ -16,7 +16,7 @@ app.get("/api/fulfillment-stats", async (req, res) => {
 
     const response = await axios.get(`${BASE_URL}/orders.json?status=any&limit=100&fields=id,created_at,fulfillments`, {
       headers: {
-        "X-Shopify-Access-Token": APIPASSWORD,
+        "X-Shopify-Access-Token": SHOPIFY_ADMIN_API_PASSWORD,
         "Content-Type": "application/json",
       },
     });
