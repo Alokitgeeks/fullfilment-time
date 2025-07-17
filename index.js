@@ -243,16 +243,20 @@ app.get("/api/fulfillment-stats", async (req, res) => {
       .filter(Boolean);
 
     const now = new Date();
+    const todayDaysAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    const todayFulfillments = fulfillmentTimes.filter((f) => f.orderDate >= todayDaysAgo);
     const last7Days = fulfillmentTimes.filter((f) => f.orderDate >= sevenDaysAgo);
     const last30Days = fulfillmentTimes.filter((f) => f.orderDate >= thirtyDaysAgo);
 
+    const todayDiffHours = todayFulfillments.map((f) => f.diffHours);
     const median7 = calculateMedian(last7Days.map((f) => f.diffHours));
     const median30 = calculateMedian(last30Days.map((f) => f.diffHours));
 
     res.json({
+      today_fulfillment_times: todayDiffHours,
       median_7_days: median7.toFixed(2),
       median_30_days: median30.toFixed(2),
     });
