@@ -192,6 +192,86 @@
 
 
 
+// require("dotenv").config();
+// const express = require("express");
+// const axios = require("axios");
+// const cors = require("cors");
+
+// const app = express();
+// const PORT = process.env.PORT || 3000;
+// app.use(cors());
+
+// const SHOPIFY_API_VERSION = "2024-01";
+// const BASE_URL = `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}`;
+
+// function calculateMedian(arr) {
+//   if (arr.length === 0) return 0;
+//   const sorted = arr.slice().sort((a, b) => a - b);
+//   const mid = Math.floor(sorted.length / 2);
+
+//   if (sorted.length % 2 !== 0) {
+//     return sorted[mid];
+//   } else {
+//     return (sorted[mid - 1] + sorted[mid]) / 2;
+//   }
+// }
+
+// app.get("/api/fulfillment-stats", async (req, res) => {
+//   try {
+//     const response = await axios.get(
+//       `${BASE_URL}/orders.json?status=any&limit=250&fields=id,created_at,fulfillments`,
+//       {
+//         headers: {
+//           "X-Shopify-Access-Token": process.env.SHOPIFY_ADMIN_API,
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
+
+//     const orders = response.data.orders;
+
+//     const fulfillmentTimes = orders
+//       .map((order) => {
+//         if (order.fulfillments.length > 0) {
+//           const orderDate = new Date(order.created_at);
+//           const fulfilledDate = new Date(order.fulfillments[0].created_at);
+//           const diffHours = (fulfilledDate - orderDate) / (1000 * 60 * 60);
+//           return { orderDate, diffHours };
+//         }
+//         return null;
+//       })
+//       .filter(Boolean);
+
+//     const now = new Date();
+//     const todayDaysAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+//     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+//     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+//     const todayFulfillments = fulfillmentTimes.filter((f) => f.orderDate >= todayDaysAgo);
+//     const last7Days = fulfillmentTimes.filter((f) => f.orderDate >= sevenDaysAgo);
+//     const last30Days = fulfillmentTimes.filter((f) => f.orderDate >= thirtyDaysAgo);
+
+//     const todayDiffHours = todayFulfillments.map((f) => f.diffHours);
+//     const median7 = calculateMedian(last7Days.map((f) => f.diffHours));
+//     const median30 = calculateMedian(last30Days.map((f) => f.diffHours));
+
+//     res.json({
+//       today_fulfillment_times: todayDiffHours.toFixed(2),
+//       median_7_days: median7.toFixed(2),
+//       median_30_days: median30.toFixed(2),
+//     });
+//   } catch (err) {
+//     console.error("Shopify API Error:", err.response?.data || err.message);
+//     res.status(500).json({ error: "Failed to fetch fulfillment analytics" });
+//   }
+// });
+
+// app.listen(PORT, () => {
+//   console.log(`🚀 Server running on port ${PORT}`);
+// });
+
+
+
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
@@ -204,6 +284,7 @@ app.use(cors());
 const SHOPIFY_API_VERSION = "2024-01";
 const BASE_URL = `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}`;
 
+// Calculate median of an array of numbers
 function calculateMedian(arr) {
   if (arr.length === 0) return 0;
   const sorted = arr.slice().sort((a, b) => a - b);
@@ -218,6 +299,7 @@ function calculateMedian(arr) {
 
 app.get("/api/fulfillment-stats", async (req, res) => {
   try {
+    // Shopify API supports max 250 orders per request, but if you want more, implement pagination.
     const response = await axios.get(
       `${BASE_URL}/orders.json?status=any&limit=250&fields=id,created_at,fulfillments`,
       {
@@ -230,9 +312,10 @@ app.get("/api/fulfillment-stats", async (req, res) => {
 
     const orders = response.data.orders;
 
+    // Extract fulfillment times (difference in hours between order created and fulfillment created)
     const fulfillmentTimes = orders
       .map((order) => {
-        if (order.fulfillments.length > 0) {
+        if (order.fulfillments && order.fulfillments.length > 0) {
           const orderDate = new Date(order.created_at);
           const fulfilledDate = new Date(order.fulfillments[0].created_at);
           const diffHours = (fulfilledDate - orderDate) / (1000 * 60 * 60);
@@ -243,20 +326,27 @@ app.get("/api/fulfillment-stats", async (req, res) => {
       .filter(Boolean);
 
     const now = new Date();
-    const todayDaysAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0); // Start of today
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const todayFulfillments = fulfillmentTimes.filter((f) => f.orderDate >= todayDaysAgo);
+    const todayFulfillments = fulfillmentTimes.filter((f) => f.orderDate >= todayStart);
     const last7Days = fulfillmentTimes.filter((f) => f.orderDate >= sevenDaysAgo);
     const last30Days = fulfillmentTimes.filter((f) => f.orderDate >= thirtyDaysAgo);
 
     const todayDiffHours = todayFulfillments.map((f) => f.diffHours);
-    const median7 = calculateMedian(last7Days.map((f) => f.diffHours));
-    const median30 = calculateMedian(last30Days.map((f) => f.diffHours));
+
+    // Defensive fallback for empty arrays to avoid errors
+    const median7 = last7Days.length ? calculateMedian(last7Days.map((f) => f.diffHours)) : 0;
+    const median30 = last30Days.length ? calculateMedian(last30Days.map((f) => f.diffHours)) : 0;
+
+    // toFixed returns a string, but for todayDiffHours (an array) you cannot call toFixed
+    // So send an array with values rounded to 2 decimals instead
+    const todayDiffHoursRounded = todayDiffHours.map((v) => Number(v.toFixed(2)));
 
     res.json({
-      today_fulfillment_times: todayDiffHours.toFixed(2),
+      today_fulfillment_times: todayDiffHoursRounded,
       median_7_days: median7.toFixed(2),
       median_30_days: median30.toFixed(2),
     });
